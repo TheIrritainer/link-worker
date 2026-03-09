@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "shortlink-worker",
+  "main": "src/worker.py",
+  "compatibility_date": "2025-11-02",
+  "compatibility_flags": [
+    "python_workers",
+    "python_dedicated_snapshot"
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "LINKS",
+      "id": "<KV_NAMESPACE_ID>",
+      "preview_id": "<KV_PREVIEW_NAMESPACE_ID>"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

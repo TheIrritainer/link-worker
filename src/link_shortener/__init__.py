@@ -1,0 +1,2 @@
+"""Shortlink service core package."""
+

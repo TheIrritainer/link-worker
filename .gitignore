@@ -1,0 +1,9 @@
+.venv/
+.pytest_cache/
+__pycache__/
+*.pyc
+.wrangler/
+src/vendor/
+node_modules/
+.dev.vars
+python_modules/
