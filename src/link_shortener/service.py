@@ -4,6 +4,11 @@ from typing import Any, Protocol
 
 from link_shortener.models import LinkRecord
 
+try:
+    from pyodide.ffi import jsnull
+except ImportError:
+    jsnull = None
+
 ALPHABET = string.ascii_lowercase + string.digits
 DEFAULT_CODE_LENGTH = 7
 MAX_GENERATION_ATTEMPTS = 16
@@ -38,6 +43,18 @@ def _to_python(value: Any) -> Any:
         except Exception:
             return value
     return value
+
+
+def _normalize_kv_value(value: Any) -> str | None:
+    value = _to_python(value)
+
+    if value is None or value is jsnull:
+        return None
+
+    if isinstance(value, str):
+        return value
+
+    return str(value)
 
 
 def _normalize_keys(raw_keys: Any) -> list[str]:
@@ -79,7 +96,7 @@ async def _generate_unique_code(
 
     for _ in range(max_attempts):
         candidate = code_factory()
-        if await kv.get(candidate) is None:
+        if _normalize_kv_value(await kv.get(candidate)) is None:
             return candidate
 
     raise RuntimeError("Failed to generate a unique short code")
@@ -90,7 +107,7 @@ async def create_link(kv: KVStore, link: str, code: str | None = None) -> LinkRe
 
     if resolved_code is None:
         resolved_code = await _generate_unique_code(kv)
-    elif await kv.get(resolved_code) is not None:
+    elif _normalize_kv_value(await kv.get(resolved_code)) is not None:
         raise LinkAlreadyExistsError(resolved_code)
 
     await kv.put(resolved_code, link)
@@ -98,14 +115,14 @@ async def create_link(kv: KVStore, link: str, code: str | None = None) -> LinkRe
 
 
 async def get_link(kv: KVStore, code: str) -> LinkRecord:
-    link = await kv.get(code)
+    link = _normalize_kv_value(await kv.get(code))
     if link is None:
         raise LinkNotFoundError(code)
-    return LinkRecord(code=code, link=str(link))
+    return LinkRecord(code=code, link=link)
 
 
 async def update_link(kv: KVStore, code: str, link: str) -> LinkRecord:
-    if await kv.get(code) is None:
+    if _normalize_kv_value(await kv.get(code)) is None:
         raise LinkNotFoundError(code)
 
     await kv.put(code, link)
@@ -113,7 +130,7 @@ async def update_link(kv: KVStore, code: str, link: str) -> LinkRecord:
 
 
 async def delete_link(kv: KVStore, code: str) -> None:
-    if await kv.get(code) is None:
+    if _normalize_kv_value(await kv.get(code)) is None:
         raise LinkNotFoundError(code)
 
     await kv.delete(code)
@@ -131,9 +148,9 @@ async def list_links(kv: KVStore) -> list[LinkRecord]:
 
         keys, next_cursor, is_complete = _normalize_list_payload(payload)
         for code in keys:
-            link = await kv.get(code)
+            link = _normalize_kv_value(await kv.get(code))
             if link is not None:
-                records.append(LinkRecord(code=code, link=str(link)))
+                records.append(LinkRecord(code=code, link=link))
 
         if is_complete or not next_cursor:
             break

@@ -50,6 +50,11 @@ class FakeKV:
         }
 
 
+class NullProxy:
+    def to_py(self):
+        return None
+
+
 def test_create_link_with_custom_code():
     kv = FakeKV()
     result = asyncio.run(create_link(kv, code="abc123", link="https://example.com"))
@@ -97,6 +102,32 @@ def test_missing_link_errors():
         asyncio.run(delete_link(kv, "missing"))
 
 
+def test_create_link_treats_js_null_as_missing():
+    kv = FakeKV()
+
+    async def missing_get(key: str):
+        return NullProxy() if key not in kv.store else kv.store[key]
+
+    kv.get = missing_get
+
+    result = asyncio.run(create_link(kv, code="abc123", link="https://example.com"))
+
+    assert result.code == "abc123"
+    assert kv.store["abc123"] == "https://example.com"
+
+
+def test_get_link_treats_js_null_as_missing():
+    kv = FakeKV()
+
+    async def missing_get(key: str):
+        return NullProxy()
+
+    kv.get = missing_get
+
+    with pytest.raises(LinkNotFoundError):
+        asyncio.run(get_link(kv, "missing"))
+
+
 def test_list_links_paginates_and_returns_sorted():
     kv = FakeKV()
     kv.store = {
@@ -107,4 +138,3 @@ def test_list_links_paginates_and_returns_sorted():
 
     results = asyncio.run(list_links(kv))
     assert [item.code for item in results] == ["aaa", "m42", "zzz"]
-

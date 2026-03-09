@@ -1,9 +1,10 @@
 import asyncio
 
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 
-from app import resolve_shortlink
+from app import create_shortlink, get_shortlink, resolve_shortlink
+from link_shortener.models import LinkCreateRequest
 
 
 class FakeKV:
@@ -27,6 +28,11 @@ class FakeKV:
             "list_complete": True,
             "cursor": "",
         }
+
+
+class NullProxy:
+    def to_py(self):
+        return None
 
 
 class FakeEnv:
@@ -60,3 +66,41 @@ def test_resolve_shortlink_rejects_invalid_target_from_kv():
     with pytest.raises(HTTPException) as error:
         asyncio.run(resolve_shortlink("test", request))
     assert error.value.status_code == 404
+
+
+def test_create_shortlink_accepts_unused_code_when_missing_kv_value_is_js_null():
+    env = FakeEnv()
+    request = FakeRequest(env)
+    response = Response()
+
+    async def missing_get(key: str):
+        return NullProxy() if key not in env.LINKS.store else env.LINKS.store[key]
+
+    env.LINKS.get = missing_get
+    created = asyncio.run(
+        create_shortlink(
+            request,
+            LinkCreateRequest(code="fresh123", link="https://example.com"),
+            response,
+        )
+    )
+
+    assert created.model_dump() == {"code": "fresh123", "link": "https://example.com"}
+    assert env.LINKS.store["fresh123"] == "https://example.com"
+    assert response.headers["location"] == "https://go.example.com/fresh123"
+
+
+def test_get_shortlink_returns_404_when_missing_kv_value_is_js_null():
+    env = FakeEnv()
+    request = FakeRequest(env)
+
+    async def missing_get(key: str):
+        return NullProxy()
+
+    env.LINKS.get = missing_get
+
+    with pytest.raises(HTTPException) as error:
+        asyncio.run(get_shortlink("missing123", request))
+
+    assert error.value.status_code == 404
+    assert error.value.detail == "Shortlink not found"
