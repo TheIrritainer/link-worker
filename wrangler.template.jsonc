@@ -10,8 +10,8 @@
   "kv_namespaces": [
     {
       "binding": "LINKS",
-      "id": "<KV_NAMESPACE_ID>",
-      "preview_id": "<KV_PREVIEW_NAMESPACE_ID>"
+      "id": "__KV_NAMESPACE_ID__",
+      "preview_id": "__KV_PREVIEW_NAMESPACE_ID__"
     }
   ],
   "observability": {
