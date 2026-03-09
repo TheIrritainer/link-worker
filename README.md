@@ -43,6 +43,11 @@ make test
 make deploy
 ```
 
+If deploying through Cloudflare's Git integration, set the build command to:
+```bash
+uv run build
+```
+
 3. In Cloudflare, route your host to this worker:
 - Go to `Workers & Pages` > your worker > `Settings` > `Triggers`
 - Add a route matching `DOMAIN_NAME/*` (example: `go.example.com/*`)

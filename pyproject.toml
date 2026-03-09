@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "link"
 version = "0.1.0"
@@ -10,6 +14,9 @@ dependencies = [
     "pydantic>=2.0,<2.12.5; sys_platform == 'emscripten'",
 ]
 
+[project.scripts]
+build = "link_shortener.build:main"
+
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
@@ -20,3 +27,10 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["link_shortener*"]

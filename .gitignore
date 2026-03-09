@@ -7,3 +7,4 @@ src/vendor/
 node_modules/
 .dev.vars
 python_modules/
+*.egg-info/
